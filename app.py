@@ -715,13 +715,52 @@ def _toolkit_systeminfo():
 
 
 def _toolkit_gain_sweep():
-    gains = [0, 10, 20, 30, 40, 49]
-    results = ["RTL-SDR Gain Sweep (rtl_test -t -g <gain>)\n" + "=" * 50]
-    for g in gains:
-        rc, out = run_cmd(["rtl_test", "-t", "-g", str(g)], 8)
-        summary = out.split("\n")[0] if out else "(no output)"
-        results.append(f"gain={g:3d}: {summary} (rc={rc})")
-    return 0, "\n".join(results)
+    """Show hardware gain table, current config, and signal quality at current gain."""
+    lines = ["RTL-SDR Gain Reference\n" + "=" * 50]
+
+    # Current configured gains
+    g1090 = get_gain_1090()
+    g978  = get_gain_978()
+    lines.append(f"Current gain — 1090 MHz (dump1090-fa) : {g1090} dB")
+    lines.append(f"Current gain — 978 MHz  (dump978-fa)  : {g978} dB")
+
+    # Signal quality snapshot from dump1090 stats
+    stats = get_dump1090_stats()
+    if stats.get("status") == "ok":
+        strong_pct = 0
+        try:
+            strong_pct = round(stats["strong_signals"] / max(stats["messages"], 1) * 100, 1)
+        except Exception:
+            pass
+        lines.append(f"\ndump1090-fa stats (last 1 min):")
+        lines.append(f"  Messages      : {stats['messages']}")
+        lines.append(f"  Aircraft      : {stats['aircraft']}")
+        lines.append(f"  Signal level  : {stats['signal_dbfs']} dBFS")
+        lines.append(f"  Noise floor   : {stats['noise_dbfs']} dBFS")
+        lines.append(f"  Strong signals: {stats['strong_signals']} ({strong_pct}%)")
+        lines.append("")
+        if stats["strong_signals"] > 0 and strong_pct > 5:
+            lines.append("  ⚠ >5% strong signals — gain is too high, lower it")
+        elif stats["messages"] < 50:
+            lines.append("  ⚠ Low message rate — gain may be too low, or antenna/location issue")
+        else:
+            lines.append("  ✓ Signal levels look reasonable")
+
+    # Valid gain steps
+    lines.append("\nValid RTL2838 gain steps (dB):")
+    lines.append("  " + "  ".join(f"{g:5.1f}" for g in GAIN_VALUES))
+
+    lines.append("\nGain tuning guide:")
+    lines.append("  Strong signals >5%   → lower gain (reduce by ~3-6 dB)")
+    lines.append("  Signal > -3 dBFS     → definitely too high")
+    lines.append("  Good range           : -20 to -10 dBFS signal, noise < -25 dBFS")
+    lines.append("  Typical sweet spot   : 40.2–43.9 dB for rooftop antenna")
+    lines.append("  Near airport (<10mi) : 28–36 dB")
+    lines.append("")
+    lines.append("Use the gain sliders on the Dashboard to adjust.")
+    lines.append("For PPM error: stop dump1090-fa, then run  rtl_test -p -s 2.4M  in Console.")
+
+    return 0, "\n".join(lines)
 
 
 def _toolkit_usb_reset():
