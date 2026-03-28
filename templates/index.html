@@ -629,14 +629,31 @@ async function fetchStatus() {
 
 async function serviceAction(service, action) {
   showToast(`${action} ${service}…`, 'info');
+  // Grey out the relevant card immediately so user knows something is happening
+  const cardId = 'card-' + service.replace('-fa', '').replace('dump', 'dump');
+  const dotId  = cardId.replace('card-', '') + '-dot';
+  setCard(cardId, 'unknown');
+  setDot(dotId.replace('card-dump978', 'dump978').replace('card-dump1090', 'dump1090')
+              .replace('card-piaware', 'piaware'), 'unknown');
   try {
     const r = await fetch(`/api/service/${service}/${action}`, { method: 'POST' });
     const d = await r.json();
-    showToast(d.ok ? `${service} ${action} OK` : `${service} ${action} FAILED: ${d.output}`,
-              d.ok ? 'success' : 'danger');
-    setTimeout(fetchStatus, 1500);
+    if (d.ok) {
+      showToast(`${service} ${action} sent — waiting for service…`, 'info');
+      // Poll at 2s, 5s, 9s to catch the service coming back up
+      setTimeout(fetchStatus, 2000);
+      setTimeout(fetchStatus, 5000);
+      setTimeout(() => {
+        fetchStatus();
+        showToast(`${service} ${action} complete`, 'success');
+      }, 9000);
+    } else {
+      showToast(`${service} ${action} FAILED: ${d.output}`, 'danger');
+      setTimeout(fetchStatus, 1500);
+    }
   } catch (e) {
     showToast('Request failed: ' + e.message, 'danger');
+    setTimeout(fetchStatus, 1500);
   }
 }
 

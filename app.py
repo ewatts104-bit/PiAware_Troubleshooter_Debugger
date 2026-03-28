@@ -369,8 +369,7 @@ def _write_piaware_config(content: str) -> tuple:
     mount_point = _boot_mount_point()
 
     if mount_point:
-        # Remount rw
-        r = subprocess.run(["sudo", "mount", "-o", "remount,rw", mount_point],
+        r = subprocess.run(["sudo", "/usr/local/bin/boot-rw"],
                            capture_output=True, text=True, timeout=10)
         if r.returncode != 0:
             return False, f"remount rw failed: {r.stderr.strip()}"
@@ -382,7 +381,7 @@ def _write_piaware_config(content: str) -> tuple:
         err = proc.stderr.strip()
     finally:
         if mount_point:
-            subprocess.run(["sudo", "mount", "-o", "remount,ro", mount_point],
+            subprocess.run(["sudo", "/usr/local/bin/boot-ro"],
                            capture_output=True, text=True, timeout=10)
 
     return ok, err

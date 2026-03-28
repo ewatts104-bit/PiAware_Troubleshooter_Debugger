@@ -26,8 +26,9 @@ pi ALL=(ALL) NOPASSWD: /usr/bin/tee /boot/piaware-config.txt
 pi ALL=(ALL) NOPASSWD: /usr/bin/tee /boot/firmware/piaware-config.txt
 
 # Boot partition remount (needed to write piaware-config.txt)
-pi ALL=(ALL) NOPASSWD: /bin/mount -o remount,rw /boot/firmware
-pi ALL=(ALL) NOPASSWD: /bin/mount -o remount,ro /boot/firmware
+# Uses wrapper scripts — sudo doesn't allow inline flags like -o in command spec
+pi ALL=(ALL) NOPASSWD: /usr/local/bin/boot-rw
+pi ALL=(ALL) NOPASSWD: /usr/local/bin/boot-ro
 
 # RTL-SDR tools
 pi ALL=(ALL) NOPASSWD: /usr/bin/rtl_test
