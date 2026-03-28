@@ -347,8 +347,48 @@ def _validate_gain(val: str) -> bool:
         return False
 
 
-def set_gain_1090(gain: str) -> tuple:
+def _boot_mount_point() -> str | None:
+    """Return the mount point of the FAT boot partition if it's not /boot directly."""
+    for candidate in ["/boot/firmware", "/boot"]:
+        if os.path.exists(os.path.join(candidate, "piaware-config.txt")):
+            # Check if it's a separate vfat mount (i.e. can be remounted)
+            try:
+                with open("/proc/mounts") as f:
+                    for line in f:
+                        parts = line.split()
+                        if len(parts) >= 3 and parts[1] == candidate and parts[2] == "vfat":
+                            return candidate
+            except Exception:
+                pass
+    return None
+
+
+def _write_piaware_config(content: str) -> tuple:
+    """Write content to piaware-config.txt, remounting the boot FAT partition rw/ro as needed."""
     path = _piaware_config_path()
+    mount_point = _boot_mount_point()
+
+    if mount_point:
+        # Remount rw
+        r = subprocess.run(["sudo", "mount", "-o", "remount,rw", mount_point],
+                           capture_output=True, text=True, timeout=10)
+        if r.returncode != 0:
+            return False, f"remount rw failed: {r.stderr.strip()}"
+
+    try:
+        proc = subprocess.run(["sudo", "tee", path], input=content,
+                              capture_output=True, text=True, timeout=10)
+        ok = proc.returncode == 0
+        err = proc.stderr.strip()
+    finally:
+        if mount_point:
+            subprocess.run(["sudo", "mount", "-o", "remount,ro", mount_point],
+                           capture_output=True, text=True, timeout=10)
+
+    return ok, err
+
+
+def set_gain_1090(gain: str) -> tuple:
     try:
         content = _read_piaware_config()
     except Exception as e:
@@ -360,13 +400,11 @@ def set_gain_1090(gain: str) -> tuple:
         flags=re.MULTILINE | re.IGNORECASE,
     )
     if new == content:
-        return False, "Pattern not found in piaware-config.txt — line may be missing"
-    proc = subprocess.run(["sudo", "tee", path], input=new, capture_output=True, text=True, timeout=10)
-    return proc.returncode == 0, proc.stderr.strip()
+        return False, "rtlsdr-gain line not found in piaware-config.txt"
+    return _write_piaware_config(new)
 
 
 def set_gain_978(gain: str) -> tuple:
-    path = _piaware_config_path()
     try:
         content = _read_piaware_config()
     except Exception as e:
@@ -378,9 +416,8 @@ def set_gain_978(gain: str) -> tuple:
         flags=re.IGNORECASE,
     )
     if new == content:
-        return False, "Pattern not found in piaware-config.txt"
-    proc = subprocess.run(["sudo", "tee", path], input=new, capture_output=True, text=True, timeout=10)
-    return proc.returncode == 0, proc.stderr.strip()
+        return False, "uat-sdr-device gain not found in piaware-config.txt"
+    return _write_piaware_config(new)
 
 
 # kept for backward compat with status endpoint

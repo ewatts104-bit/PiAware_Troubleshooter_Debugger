@@ -25,6 +25,10 @@ pi ALL=(ALL) NOPASSWD: /usr/bin/tee /etc/default/dump1090-fa
 pi ALL=(ALL) NOPASSWD: /usr/bin/tee /boot/piaware-config.txt
 pi ALL=(ALL) NOPASSWD: /usr/bin/tee /boot/firmware/piaware-config.txt
 
+# Boot partition remount (needed to write piaware-config.txt)
+pi ALL=(ALL) NOPASSWD: /bin/mount -o remount,rw /boot/firmware
+pi ALL=(ALL) NOPASSWD: /bin/mount -o remount,ro /boot/firmware
+
 # RTL-SDR tools
 pi ALL=(ALL) NOPASSWD: /usr/bin/rtl_test
 pi ALL=(ALL) NOPASSWD: /usr/local/bin/rtl_test
