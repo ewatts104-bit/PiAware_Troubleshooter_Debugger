@@ -1,0 +1,220 @@
+/* PiAware RTL-SDR Troubleshooter — Dark Terminal Theme */
+
+:root {
+  --term-green: #00ff88;
+  --term-amber: #ffd700;
+  --term-dim:   #4a5568;
+  --bg-base:    #0d1117;
+  --bg-card:    #161b22;
+  --bg-card2:   #1c2128;
+  --border:     #30363d;
+  --text-main:  #e6edf3;
+  --text-muted: #8b949e;
+}
+
+/* ── Base ── */
+body {
+  background-color: var(--bg-base);
+  color: var(--text-main);
+  min-height: 100vh;
+}
+
+.font-mono {
+  font-family: "Fira Code", "Cascadia Code", "Consolas", "Liberation Mono", monospace !important;
+}
+
+/* ── Navbar ── */
+#top-nav {
+  background-color: #010409;
+  border-bottom: 1px solid var(--border);
+  padding: 0.5rem 1rem;
+}
+
+/* ── Tabs ── */
+.nav-tabs {
+  border-bottom-color: var(--border);
+}
+.nav-tabs .nav-link {
+  color: var(--text-muted);
+  border-color: transparent;
+  font-size: 0.875rem;
+  padding: 0.4rem 0.9rem;
+  transition: color 0.15s, border-color 0.15s;
+}
+.nav-tabs .nav-link:hover {
+  color: var(--term-green);
+  border-color: var(--border) var(--border) transparent;
+}
+.nav-tabs .nav-link.active {
+  color: var(--term-green);
+  background-color: var(--bg-card);
+  border-color: var(--border) var(--border) var(--bg-card);
+}
+
+/* ── Cards ── */
+.card {
+  background-color: var(--bg-card);
+  border-color: var(--border);
+}
+.card-header {
+  background-color: var(--bg-card2);
+  border-bottom-color: var(--border);
+  font-size: 0.85rem;
+}
+
+.status-card {
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.card-ok    { border-color: #238636 !important; box-shadow: 0 0 8px rgba(35,134,54,0.2); }
+.card-warn  { border-color: #9e6a03 !important; box-shadow: 0 0 8px rgba(158,106,3,0.2); }
+.card-error { border-color: #da3633 !important; box-shadow: 0 0 8px rgba(218,54,51,0.2); }
+.card-unknown { border-color: var(--border) !important; }
+
+/* ── Status dots ── */
+.status-dot {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: pulse 2.5s infinite;
+}
+.dot-ok      { background: #3fb950; box-shadow: 0 0 6px #3fb950; }
+.dot-warn    { background: #d29922; box-shadow: 0 0 6px #d29922; }
+.dot-error   { background: #f85149; box-shadow: 0 0 6px #f85149; animation: pulse-error 1s infinite; }
+.dot-unknown { background: var(--term-dim); animation: none; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+@keyframes pulse-error {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.2); }
+}
+
+/* ── Stats ── */
+.stat-num {
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--term-green);
+}
+
+/* ── Log viewer ── */
+.log-viewer {
+  background-color: #010409;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  height: calc(100vh - 220px);
+  min-height: 300px;
+  overflow-y: auto;
+  overflow-x: auto;
+  padding: 0.75rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #c9d1d9;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.log-line {
+  display: block;
+  border-bottom: 1px solid rgba(255,255,255,0.02);
+  padding: 1px 0;
+}
+.log-line:last-child { border-bottom: none; }
+
+/* ── Terminal container ── */
+#terminal-container {
+  background: #0d1117;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  height: calc(100vh - 200px);
+  min-height: 400px;
+  overflow: hidden;
+  padding: 4px;
+}
+#terminal-container .xterm {
+  height: 100%;
+}
+#terminal-container .xterm-viewport {
+  background-color: #0d1117 !important;
+}
+
+/* ── Toolkit output ── */
+.toolkit-output {
+  background-color: #010409;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  min-height: 200px;
+  max-height: calc(100vh - 500px);
+  overflow-y: auto;
+  overflow-x: auto;
+  padding: 1rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--term-green);
+  white-space: pre;
+}
+
+/* ── Config editor ── */
+.cfg-editor {
+  width: 100%;
+  height: calc(100vh - 260px);
+  min-height: 300px;
+  background-color: #010409;
+  color: var(--term-green);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  tab-size: 4;
+  -moz-tab-size: 4;
+}
+.cfg-editor:focus {
+  border-color: #58a6ff;
+  box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.15);
+}
+
+/* ── Buttons ── */
+.btn-outline-success { --bs-btn-color: var(--term-green); --bs-btn-border-color: var(--term-green); }
+.btn-outline-success:hover { background-color: rgba(0,255,136,0.1); }
+
+/* ── Scrollbar (Webkit) ── */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0d1117; }
+::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #484f58; }
+
+/* ── Progress bars ── */
+.progress {
+  background-color: #21262d;
+}
+
+/* ── Forms ── */
+.form-control, .form-select {
+  background-color: var(--bg-card2);
+  border-color: var(--border);
+  color: var(--text-main);
+}
+.form-control:focus, .form-select:focus {
+  background-color: var(--bg-card2);
+  border-color: #58a6ff;
+  color: var(--text-main);
+  box-shadow: 0 0 0 2px rgba(88,166,255,0.15);
+}
+.form-control::placeholder { color: var(--text-muted); }
+
+/* ── Badges ── */
+.badge { font-size: 0.75rem; }
+
+/* ── Mobile tweaks ── */
+@media (max-width: 576px) {
+  .log-viewer { height: 60vh; }
+  #terminal-container { height: 60vh; }
+  .toolkit-output { max-height: 40vh; }
+  .stat-num { font-size: 1.2rem; }
+}

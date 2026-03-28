@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PiAware RTL-SDR Troubleshooter</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-dark navbar-expand-lg" id="top-nav">
+  <div class="container-fluid">
+    <span class="navbar-brand fw-bold font-mono">
+      <i class="bi bi-broadcast-pin text-success me-2"></i>
+      RTL-SDR Troubleshooter
+    </span>
+    <div class="d-flex align-items-center gap-3 ms-auto">
+      <span class="badge bg-secondary font-mono" id="last-update">--</span>
+      <span class="badge" id="overall-badge">Loading…</span>
+    </div>
+  </div>
+</nav>
+
+<!-- Tab Nav -->
+<div class="container-fluid px-3 mt-2">
+  <ul class="nav nav-tabs" id="mainTabs">
+    <li class="nav-item">
+      <button class="nav-link active font-mono" data-bs-toggle="tab" data-bs-target="#tab-dashboard">
+        <i class="bi bi-speedometer2 me-1"></i>Dashboard
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link font-mono" data-bs-toggle="tab" data-bs-target="#tab-logs">
+        <i class="bi bi-journal-text me-1"></i>Logs
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link font-mono" data-bs-toggle="tab" data-bs-target="#tab-console">
+        <i class="bi bi-terminal me-1"></i>Console
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link font-mono" data-bs-toggle="tab" data-bs-target="#tab-toolkit">
+        <i class="bi bi-tools me-1"></i>Toolkit
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link font-mono" data-bs-toggle="tab" data-bs-target="#tab-config">
+        <i class="bi bi-gear me-1"></i>Config
+      </button>
+    </li>
+  </ul>
+
+  <div class="tab-content mt-3">
+
+    <!-- ═══════════════════ DASHBOARD ═══════════════════ -->
+    <div class="tab-pane fade show active" id="tab-dashboard">
+      <div class="row g-3" id="status-cards">
+
+        <!-- RTL-SDR -->
+        <div class="col-12 col-sm-6 col-xl-4">
+          <div class="card status-card h-100" id="card-rtlsdr">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <h6 class="card-subtitle text-muted font-mono mb-1">RTL-SDR Hardware</h6>
+                  <p class="card-title h5 mb-0 font-mono" id="rtlsdr-device">checking…</p>
+                </div>
+                <span class="status-dot" id="rtlsdr-dot"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PiAware -->
+        <div class="col-12 col-sm-6 col-xl-4">
+          <div class="card status-card h-100" id="card-piaware">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <h6 class="card-subtitle text-muted font-mono mb-1">PiAware Service</h6>
+                  <p class="card-title h5 mb-0 font-mono" id="piaware-state">checking…</p>
+                  <small class="text-muted font-mono" id="piaware-enabled"></small>
+                </div>
+                <span class="status-dot" id="piaware-dot"></span>
+              </div>
+              <div class="mt-2 d-flex gap-2">
+                <button class="btn btn-sm btn-outline-warning font-mono" onclick="serviceAction('piaware','restart')">
+                  <i class="bi bi-arrow-clockwise"></i> Restart
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- dump1090 -->
+        <div class="col-12 col-sm-6 col-xl-4">
+          <div class="card status-card h-100" id="card-dump1090">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <h6 class="card-subtitle text-muted font-mono mb-1">dump1090-fa</h6>
+                  <p class="card-title h5 mb-0 font-mono" id="dump1090-state">checking…</p>
+                  <small class="text-muted font-mono" id="dump1090-enabled"></small>
+                </div>
+                <span class="status-dot" id="dump1090-dot"></span>
+              </div>
+              <div class="mt-2 d-flex gap-2">
+                <button class="btn btn-sm btn-outline-warning font-mono" onclick="serviceAction('dump1090-fa','restart')">
+                  <i class="bi bi-arrow-clockwise"></i> Restart
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CPU Temp -->
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="card status-card h-100" id="card-temp">
+            <div class="card-body">
+              <h6 class="card-subtitle text-muted font-mono mb-2">CPU Temperature</h6>
+              <div class="d-flex align-items-end gap-2">
+                <span class="h3 mb-0 font-mono" id="temp-val">--</span>
+                <span class="text-muted font-mono mb-1">°C</span>
+                <span class="text-muted font-mono mb-1" id="temp-f"></span>
+              </div>
+              <div class="progress mt-2" style="height:6px">
+                <div class="progress-bar" id="temp-bar" style="width:0%"></div>
+              </div>
+              <div class="mt-1">
+                <small class="font-mono text-muted" id="throttle-flags"></small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ADS-B Stats -->
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="card status-card h-100" id="card-adsb">
+            <div class="card-body">
+              <h6 class="card-subtitle text-muted font-mono mb-2">ADS-B Stats (1min)</h6>
+              <div class="row g-2 text-center">
+                <div class="col-6">
+                  <div class="stat-num font-mono" id="adsb-messages">--</div>
+                  <small class="text-muted font-mono">messages</small>
+                </div>
+                <div class="col-6">
+                  <div class="stat-num font-mono" id="adsb-aircraft">--</div>
+                  <small class="text-muted font-mono">aircraft</small>
+                </div>
+                <div class="col-6">
+                  <div class="stat-num font-mono text-warning" id="adsb-signal">--</div>
+                  <small class="text-muted font-mono">sig dBFS</small>
+                </div>
+                <div class="col-6">
+                  <div class="stat-num font-mono text-secondary" id="adsb-strong">--</div>
+                  <small class="text-muted font-mono">strong%</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resources -->
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="card status-card h-100" id="card-resources">
+            <div class="card-body">
+              <h6 class="card-subtitle text-muted font-mono mb-2">System Resources</h6>
+              <div class="mb-1">
+                <div class="d-flex justify-content-between font-mono small">
+                  <span>CPU</span><span id="res-cpu">--%</span>
+                </div>
+                <div class="progress mb-1" style="height:4px">
+                  <div class="progress-bar bg-info" id="cpu-bar" style="width:0%"></div>
+                </div>
+              </div>
+              <div class="mb-1">
+                <div class="d-flex justify-content-between font-mono small">
+                  <span>RAM</span><span id="res-mem">--</span>
+                </div>
+                <div class="progress mb-1" style="height:4px">
+                  <div class="progress-bar bg-success" id="mem-bar" style="width:0%"></div>
+                </div>
+              </div>
+              <div>
+                <div class="d-flex justify-content-between font-mono small">
+                  <span>Disk</span><span id="res-disk">--</span>
+                </div>
+                <div class="progress" style="height:4px">
+                  <div class="progress-bar bg-warning" id="disk-bar" style="width:0%"></div>
+                </div>
+              </div>
+              <div class="mt-2 font-mono small text-muted" id="res-load">load: --</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- dump978-fa -->
+        <div class="col-12 col-sm-6 col-xl-4">
+          <div class="card status-card h-100" id="card-dump978">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <h6 class="card-subtitle text-muted font-mono mb-1">dump978-fa (UAT)</h6>
+                  <p class="card-title h5 mb-0 font-mono" id="dump978-state">checking…</p>
+                  <small class="text-muted font-mono" id="dump978-enabled"></small>
+                </div>
+                <span class="status-dot" id="dump978-dot"></span>
+              </div>
+              <div class="mt-2 d-flex gap-2">
+                <button class="btn btn-sm btn-outline-warning font-mono" onclick="serviceAction('dump978-fa','restart')">
+                  <i class="bi bi-arrow-clockwise"></i> Restart
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gain 1090 -->
+        <div class="col-12 col-sm-6 col-xl-4">
+          <div class="card status-card h-100">
+            <div class="card-body">
+              <h6 class="card-subtitle text-muted font-mono mb-1">
+                <i class="bi bi-sliders me-1"></i>Gain — 1090 MHz (serial:1090)
+              </h6>
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="font-mono fw-bold text-success" id="gain-1090-display" style="min-width:4rem">--</span>
+                <span class="text-muted font-mono small">dB</span>
+                <span class="badge bg-secondary font-mono ms-auto" id="gain-1090-status"></span>
+              </div>
+              <input type="range" class="gain-slider form-range" id="gain-1090-slider"
+                     min="0" max="49.6" step="0.1" value="40"
+                     oninput="gainSliderMove('1090', this.value)"
+                     onchange="gainSliderCommit('1090', this.value)">
+              <div class="d-flex justify-content-between">
+                <small class="text-muted font-mono">0 dB</small>
+                <small class="text-muted font-mono">49.6 dB</small>
+              </div>
+              <small class="font-mono text-warning mt-1 d-block" id="gain-1090-hint"></small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gain 978 -->
+        <div class="col-12 col-sm-6 col-xl-4">
+          <div class="card status-card h-100">
+            <div class="card-body">
+              <h6 class="card-subtitle text-muted font-mono mb-1">
+                <i class="bi bi-sliders me-1"></i>Gain — 978 MHz UAT (serial:978)
+              </h6>
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="font-mono fw-bold text-success" id="gain-978-display" style="min-width:4rem">--</span>
+                <span class="text-muted font-mono small">dB</span>
+                <span class="badge bg-secondary font-mono ms-auto" id="gain-978-status"></span>
+              </div>
+              <input type="range" class="gain-slider form-range" id="gain-978-slider"
+                     min="0" max="49.6" step="0.1" value="49.6"
+                     oninput="gainSliderMove('978', this.value)"
+                     onchange="gainSliderCommit('978', this.value)">
+              <div class="d-flex justify-content-between">
+                <small class="text-muted font-mono">0 dB</small>
+                <small class="text-muted font-mono">49.6 dB</small>
+              </div>
+              <small class="font-mono text-warning mt-1 d-block" id="gain-978-hint"></small>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /row -->
+    </div><!-- /dashboard -->
+
+    <!-- ═══════════════════ LOGS ═══════════════════ -->
+    <div class="tab-pane fade" id="tab-logs">
+      <div class="row g-2 mb-2">
+        <div class="col-auto">
+          <select class="form-select form-select-sm font-mono" id="log-source-select" onchange="switchLogSource()">
+            <optgroup label="Files">
+              <option value="file:piaware">piaware.log (file)</option>
+              <option value="file:dump1090">dump1090-fa.log (file)</option>
+              <option value="file:syslog">syslog (file)</option>
+            </optgroup>
+            <optgroup label="Journald (live)">
+              <option value="journal:piaware">piaware (journal -f)</option>
+              <option value="journal:dump1090-fa">dump1090-fa (journal -f)</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="col-auto">
+          <button class="btn btn-sm btn-outline-secondary font-mono" onclick="clearLogView()">
+            <i class="bi bi-x-circle"></i> Clear
+          </button>
+        </div>
+        <div class="col-auto">
+          <button class="btn btn-sm btn-outline-secondary font-mono" onclick="downloadLog()">
+            <i class="bi bi-download"></i> Download
+          </button>
+        </div>
+        <div class="col-auto ms-auto">
+          <div class="form-check form-switch mt-1">
+            <input class="form-check-input" type="checkbox" id="log-autoscroll" checked>
+            <label class="form-check-label font-mono small" for="log-autoscroll">Auto-scroll</label>
+          </div>
+        </div>
+      </div>
+      <div id="log-viewer" class="log-viewer font-mono"></div>
+    </div><!-- /logs -->
+
+    <!-- ═══════════════════ CONSOLE ═══════════════════ -->
+    <div class="tab-pane fade" id="tab-console">
+      <div class="row g-2 mb-2 align-items-center">
+        <div class="col-auto">
+          <span class="badge font-mono" id="term-status-badge">Connecting…</span>
+        </div>
+        <div class="col">
+          <div class="input-group input-group-sm">
+            <input type="text" class="form-control font-mono bg-dark text-success border-secondary"
+                   id="quick-cmd-input" placeholder="Command (whitelisted only)…"
+                   onkeydown="if(event.key==='Enter') sendQuickCmd()">
+            <button class="btn btn-outline-success font-mono" onclick="sendQuickCmd()">
+              <i class="bi bi-play-fill"></i> Run
+            </button>
+          </div>
+        </div>
+        <div class="col-auto">
+          <button class="btn btn-sm btn-outline-secondary font-mono" onclick="clearTerminal()">
+            <i class="bi bi-x-square"></i> Clear
+          </button>
+        </div>
+        <div class="col-auto">
+          <button class="btn btn-sm btn-outline-secondary font-mono" onclick="copyTermOutput()">
+            <i class="bi bi-clipboard"></i> Copy
+          </button>
+        </div>
+      </div>
+      <div id="terminal-container"></div>
+      <div class="mt-1">
+        <small class="text-muted font-mono" id="term-hint">
+          Full bash session. Toolkit buttons and quick-run use whitelist enforcement.
+        </small>
+      </div>
+    </div><!-- /console -->
+
+    <!-- ═══════════════════ TOOLKIT ═══════════════════ -->
+    <div class="tab-pane fade" id="tab-toolkit">
+      <div class="row g-3">
+
+        <!-- RTL-SDR Hardware -->
+        <div class="col-12 col-md-6">
+          <div class="card h-100">
+            <div class="card-header font-mono text-success">
+              <i class="bi bi-usb-symbol me-2"></i>RTL-SDR Hardware
+            </div>
+            <div class="card-body d-grid gap-2">
+              <button class="btn btn-outline-success font-mono" onclick="runToolkit('rtl_test_quick')">
+                <i class="bi bi-play-circle me-1"></i>Quick rtl_test (hardware check)
+              </button>
+              <button class="btn btn-outline-info font-mono" onclick="runToolkit('rtl_eeprom')">
+                <i class="bi bi-info-circle me-1"></i>Read EEPROM (device info)
+              </button>
+              <button class="btn btn-outline-warning font-mono" onclick="runToolkitTerm('rtl_test -p -s 2.4M')">
+                <i class="bi bi-broadcast me-1"></i>PPM error test (rtl_test -p -s 2.4M)
+              </button>
+              <button class="btn btn-outline-primary font-mono" onclick="runToolkit('rtl_gain_sweep')">
+                <i class="bi bi-bar-chart me-1"></i>Gain sweep (find sweet spot)
+              </button>
+              <button class="btn btn-outline-danger font-mono" onclick="runToolkit('usb_reset')">
+                <i class="bi bi-usb-plug me-1"></i>Reset USB bus for dongle
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- USB & Drivers -->
+        <div class="col-12 col-md-6">
+          <div class="card h-100">
+            <div class="card-header font-mono text-warning">
+              <i class="bi bi-diagram-3 me-2"></i>USB &amp; Drivers
+            </div>
+            <div class="card-body d-grid gap-2">
+              <button class="btn btn-outline-warning font-mono" onclick="runToolkit('lsusb_tree')">
+                <i class="bi bi-diagram-2 me-1"></i>USB tree (lsusb -t)
+              </button>
+              <button class="btn btn-outline-warning font-mono" onclick="runToolkit('lsusb_verbose')">
+                <i class="bi bi-search me-1"></i>lsusb -v (verbose)
+              </button>
+              <button class="btn btn-outline-info font-mono" onclick="runToolkit('dmesg_usb')">
+                <i class="bi bi-journal-code me-1"></i>dmesg (USB/RTL lines only)
+              </button>
+              <button class="btn btn-outline-primary font-mono" onclick="runToolkit('check_drivers')">
+                <i class="bi bi-layers me-1"></i>Check loaded drivers
+              </button>
+              <button class="btn btn-outline-danger font-mono" onclick="runToolkit('check_blacklist')">
+                <i class="bi bi-shield-x me-1"></i>Verify driver blacklist
+              </button>
+              <button class="btn btn-outline-secondary font-mono" onclick="runToolkit('check_usb_power')">
+                <i class="bi bi-lightning me-1"></i>USB power / reset events
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ADS-B Signal -->
+        <div class="col-12 col-md-6">
+          <div class="card h-100">
+            <div class="card-header font-mono text-info">
+              <i class="bi bi-airplane me-2"></i>ADS-B Signal Quality
+            </div>
+            <div class="card-body d-grid gap-2">
+              <button class="btn btn-outline-info font-mono" onclick="runToolkit('adsb_quality')">
+                <i class="bi bi-activity me-1"></i>Full signal quality report
+              </button>
+              <button class="btn btn-outline-success font-mono" onclick="runToolkitTerm('sudo systemctl status dump1090-fa')">
+                <i class="bi bi-clipboard-check me-1"></i>dump1090-fa service status
+              </button>
+              <button class="btn btn-outline-success font-mono" onclick="runToolkitTerm('sudo systemctl status piaware')">
+                <i class="bi bi-clipboard-check me-1"></i>PiAware service status
+              </button>
+              <button class="btn btn-outline-warning font-mono" onclick="runToolkitTerm('journalctl -u dump1090-fa -n 50 --no-pager')">
+                <i class="bi bi-journal me-1"></i>dump1090-fa last 50 journal lines
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pi Platform -->
+        <div class="col-12 col-md-6">
+          <div class="card h-100">
+            <div class="card-header font-mono text-secondary">
+              <i class="bi bi-cpu me-2"></i>Pi Platform &amp; System
+            </div>
+            <div class="card-body d-grid gap-2">
+              <button class="btn btn-outline-secondary font-mono" onclick="runToolkit('pi_quirks')">
+                <i class="bi bi-exclamation-triangle me-1"></i>Pi quirks check (Pi4/5/CM4)
+              </button>
+              <button class="btn btn-outline-secondary font-mono" onclick="runToolkit('systeminfo')">
+                <i class="bi bi-pc-display me-1"></i>Full system info
+              </button>
+              <button class="btn btn-outline-secondary font-mono" onclick="runToolkit('vcgencmd_temp')">
+                <i class="bi bi-thermometer-half me-1"></i>CPU temperature
+              </button>
+              <button class="btn btn-outline-secondary font-mono" onclick="runToolkit('vcgencmd_throttle')">
+                <i class="bi bi-battery-half me-1"></i>Throttle/undervoltage flags
+              </button>
+              <button class="btn btn-outline-secondary font-mono" onclick="runToolkit('netstat')">
+                <i class="bi bi-ethernet me-1"></i>Listening ports (ss -tlnp)
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /row -->
+
+      <!-- Toolkit output -->
+      <div class="mt-3">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span class="font-mono text-muted small" id="toolkit-cmd-label">Output:</span>
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-outline-secondary font-mono" onclick="clearToolkitOutput()">
+              <i class="bi bi-x-circle"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-secondary font-mono" onclick="copyToolkitOutput()">
+              <i class="bi bi-clipboard"></i>
+            </button>
+          </div>
+        </div>
+        <div id="toolkit-output" class="toolkit-output font-mono">
+          <span class="text-muted">Run a toolkit action to see output here…</span>
+        </div>
+      </div>
+    </div><!-- /toolkit -->
+
+    <!-- ═══════════════════ CONFIG ═══════════════════ -->
+    <div class="tab-pane fade" id="tab-config">
+      <div class="row g-2 mb-2 align-items-center">
+        <div class="col-auto">
+          <select class="form-select form-select-sm font-mono" id="cfg-select" onchange="loadConfig()">
+            <option value="piaware">piaware.conf</option>
+            <option value="dump1090">dump1090-fa defaults</option>
+          </select>
+        </div>
+        <div class="col-auto">
+          <span class="font-mono text-muted small" id="cfg-path"></span>
+        </div>
+        <div class="col-auto ms-auto">
+          <button class="btn btn-sm btn-outline-success font-mono" onclick="saveConfig()">
+            <i class="bi bi-floppy me-1"></i>Save &amp; Apply
+          </button>
+          <button class="btn btn-sm btn-outline-secondary font-mono ms-1" onclick="loadConfig()">
+            <i class="bi bi-arrow-clockwise me-1"></i>Reload
+          </button>
+        </div>
+      </div>
+      <div id="cfg-error" class="alert alert-danger font-mono d-none"></div>
+      <div id="cfg-success" class="alert alert-success font-mono d-none"></div>
+      <textarea id="cfg-editor" class="cfg-editor font-mono" spellcheck="false" autocorrect="off" autocapitalize="off"></textarea>
+      <small class="text-muted font-mono">
+        <i class="bi bi-exclamation-triangle text-warning"></i>
+        Saves via <code>sudo tee</code>. Service must be restarted manually after config changes.
+      </small>
+    </div><!-- /config -->
+
+  </div><!-- /tab-content -->
+</div><!-- /container -->
+
+<!-- Toast container -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toast-container"></div>
+
+<!-- JS Dependencies -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
+<script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// Dashboard — live status refresh
+// ═══════════════════════════════════════════════════════════════
+
+const REFRESH_MS = 5000;
+let statusTimer = null;
+
+function setDot(id, status) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'status-dot dot-' + (status || 'unknown');
+}
+
+function setCard(id, status) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'card status-card h-100 card-' + (status || 'unknown');
+}
+
+async function fetchStatus() {
+  try {
+    const r = await fetch('/api/status');
+    if (!r.ok) return;
+    const d = await r.json();
+
+    // Timestamp
+    const ts = new Date(d.timestamp);
+    document.getElementById('last-update').textContent = ts.toLocaleTimeString();
+
+    // RTL-SDR
+    document.getElementById('rtlsdr-device').textContent = d.rtlsdr.device || 'Not found';
+    setDot('rtlsdr-dot', d.rtlsdr.status);
+    setCard('card-rtlsdr', d.rtlsdr.status);
+
+    // PiAware
+    document.getElementById('piaware-state').textContent = d.piaware.state;
+    document.getElementById('piaware-enabled').textContent = d.piaware.enabled ? 'enabled' : 'disabled';
+    setDot('piaware-dot', d.piaware.status);
+    setCard('card-piaware', d.piaware.status);
+
+    // dump1090
+    document.getElementById('dump1090-state').textContent = d.dump1090.state;
+    document.getElementById('dump1090-enabled').textContent = d.dump1090.enabled ? 'enabled' : 'disabled';
+    setDot('dump1090-dot', d.dump1090.status);
+    setCard('card-dump1090', d.dump1090.status);
+
+    // Temp
+    const tc = d.temp.celsius;
+    document.getElementById('temp-val').textContent = tc.toFixed(1);
+    document.getElementById('temp-f').textContent = `(${d.temp.fahrenheit}°F)`;
+    const tempPct = Math.min(100, (tc / 90) * 100);
+    const tempBar = document.getElementById('temp-bar');
+    tempBar.style.width = tempPct + '%';
+    tempBar.className = 'progress-bar ' + (tc < 65 ? 'bg-success' : tc < 75 ? 'bg-warning' : 'bg-danger');
+
+    // Throttle
+    const flags = d.throttle.flags || [];
+    const flagEl = document.getElementById('throttle-flags');
+    flagEl.textContent = flags.length ? ('⚠ ' + flags.join(', ')) : '';
+    flagEl.className = flags.length ? 'font-mono small text-danger' : 'font-mono small text-muted';
+
+    // Overall badge
+    const allOk = d.rtlsdr.status === 'ok' && d.piaware.status === 'ok' && d.dump1090.status === 'ok' && d.throttle.ok;
+    const badge = document.getElementById('overall-badge');
+    badge.textContent = allOk ? 'ALL OK' : 'ISSUES';
+    badge.className = 'badge ' + (allOk ? 'bg-success' : 'bg-danger');
+
+    // ADS-B stats
+    const s = d.dump1090_stats;
+    document.getElementById('adsb-messages').textContent = s.messages ?? '--';
+    document.getElementById('adsb-aircraft').textContent = s.aircraft ?? '--';
+    document.getElementById('adsb-signal').textContent = s.signal_dbfs != null ? s.signal_dbfs.toFixed(1) : '--';
+    document.getElementById('adsb-strong').textContent = s.strong_signals ?? '--';
+
+    // Resources
+    const res = d.resources;
+    document.getElementById('res-cpu').textContent = (res.cpu_percent || 0).toFixed(1) + '%';
+    document.getElementById('cpu-bar').style.width = (res.cpu_percent || 0) + '%';
+    document.getElementById('res-mem').textContent =
+      `${res.mem_used_mb || 0}/${res.mem_total_mb || 0} MB (${(res.mem_percent || 0).toFixed(0)}%)`;
+    document.getElementById('mem-bar').style.width = (res.mem_percent || 0) + '%';
+    document.getElementById('res-disk').textContent =
+      `${res.disk_free_gb || 0} GB free (${(res.disk_percent || 0).toFixed(0)}%)`;
+    document.getElementById('disk-bar').style.width = (res.disk_percent || 0) + '%';
+    if (res.load_avg) {
+      document.getElementById('res-load').textContent =
+        `load: ${res.load_avg.map(v => v.toFixed(2)).join(' ')}`;
+    }
+
+    // dump978-fa
+    document.getElementById('dump978-state').textContent = d.dump978.state;
+    document.getElementById('dump978-enabled').textContent = d.dump978.enabled ? 'enabled' : 'disabled';
+    setDot('dump978-dot', d.dump978.status);
+    setCard('card-dump978', d.dump978.status);
+
+    // Gain sliders (only update if user isn't actively dragging)
+    if (!gainDragging['1090'] && d.gain_1090 && d.gain_1090 !== 'unknown') {
+      updateGainDisplay('1090', d.gain_1090);
+    }
+    if (!gainDragging['978'] && d.gain_978 && d.gain_978 !== 'unknown') {
+      updateGainDisplay('978', d.gain_978);
+    }
+    // Strong signal hint for 1090
+    document.getElementById('gain-1090-hint').textContent =
+      s.strong_signals > 5 ? '⚠ Strong signals >5% → lower gain' : '';
+
+  } catch (e) {
+    console.error('Status fetch error:', e);
+  }
+}
+
+async function serviceAction(service, action) {
+  showToast(`${action} ${service}…`, 'info');
+  try {
+    const r = await fetch(`/api/service/${service}/${action}`, { method: 'POST' });
+    const d = await r.json();
+    showToast(d.ok ? `${service} ${action} OK` : `${service} ${action} FAILED: ${d.output}`,
+              d.ok ? 'success' : 'danger');
+    setTimeout(fetchStatus, 1500);
+  } catch (e) {
+    showToast('Request failed: ' + e.message, 'danger');
+  }
+}
+
+// Start polling
+fetchStatus();
+statusTimer = setInterval(fetchStatus, REFRESH_MS);
+
+// ═══════════════════════════════════════════════════════════════
+// Gain sliders
+// ═══════════════════════════════════════════════════════════════
+
+const GAIN_VALUES = [
+  0.0, 0.9, 1.4, 2.7, 3.7, 7.7, 8.7, 12.5, 14.4, 15.7,
+  16.6, 19.7, 20.7, 22.9, 25.4, 28.0, 29.7, 32.8, 33.8,
+  36.4, 37.2, 38.6, 40.2, 42.1, 43.4, 43.9, 44.5, 48.0, 49.6,
+];
+
+const gainDragging = { '1090': false, '978': false };
+
+function snapGain(val) {
+  const v = parseFloat(val);
+  return GAIN_VALUES.reduce((a, b) => Math.abs(b - v) < Math.abs(a - v) ? b : a);
+}
+
+function updateGainDisplay(dongle, gainVal) {
+  const slider = document.getElementById(`gain-${dongle}-slider`);
+  const display = document.getElementById(`gain-${dongle}-display`);
+  if (slider && gainVal !== 'unknown') {
+    slider.value = parseFloat(gainVal);
+  }
+  if (display) display.textContent = gainVal;
+}
+
+function gainSliderMove(dongle, rawVal) {
+  gainDragging[dongle] = true;
+  const snapped = snapGain(rawVal);
+  document.getElementById(`gain-${dongle}-display`).textContent = snapped.toFixed(1);
+  document.getElementById(`gain-${dongle}-slider`).value = snapped;
+  document.getElementById(`gain-${dongle}-status`).textContent = '';
+}
+
+async function gainSliderCommit(dongle, rawVal) {
+  const gain = snapGain(rawVal).toFixed(1);
+  document.getElementById(`gain-${dongle}-slider`).value = gain;
+  document.getElementById(`gain-${dongle}-display`).textContent = gain;
+
+  const badge = document.getElementById(`gain-${dongle}-status`);
+  badge.textContent = 'saving…';
+  badge.className = 'badge bg-warning font-mono ms-auto';
+
+  try {
+    const r = await fetch(`/api/gain/${dongle}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gain }),
+    });
+    const d = await r.json();
+    if (d.ok) {
+      badge.textContent = 'saved ✓';
+      badge.className = 'badge bg-success font-mono ms-auto';
+      showToast(`${dongle} MHz gain set to ${gain} dB — service restarted`, 'success');
+    } else {
+      badge.textContent = 'error';
+      badge.className = 'badge bg-danger font-mono ms-auto';
+      showToast(`Gain set failed: ${d.error}`, 'danger');
+    }
+  } catch (e) {
+    badge.textContent = 'error';
+    badge.className = 'badge bg-danger font-mono ms-auto';
+    showToast('Gain request failed: ' + e.message, 'danger');
+  }
+  gainDragging[dongle] = false;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Log viewer
+// ═══════════════════════════════════════════════════════════════
+
+let logEventSource = null;
+const logViewer = document.getElementById('log-viewer');
+
+function ansiToHtml(text) {
+  // Very minimal ANSI — just strip escape codes for the log viewer
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\x1b\[[0-9;]*m/g, '')
+    .replace(/(ERROR|CRIT|FATAL)/gi, '<span class="text-danger fw-bold">$1</span>')
+    .replace(/(WARN|WARNING)/gi, '<span class="text-warning">$1</span>')
+    .replace(/(INFO)/gi, '<span class="text-info">$1</span>');
+}
+
+function appendLogLine(line) {
+  const div = document.createElement('div');
+  div.className = 'log-line';
+  div.innerHTML = ansiToHtml(line);
+  logViewer.appendChild(div);
+  if (logViewer.children.length > 2000) {
+    logViewer.removeChild(logViewer.firstChild);
+  }
+  if (document.getElementById('log-autoscroll').checked) {
+    logViewer.scrollTop = logViewer.scrollHeight;
+  }
+}
+
+function switchLogSource() {
+  if (logEventSource) {
+    logEventSource.close();
+    logEventSource = null;
+  }
+  logViewer.innerHTML = '';
+  const val = document.getElementById('log-source-select').value;
+  const [type, name] = val.split(':');
+
+  if (type === 'file') {
+    // Load last N lines then start SSE stream
+    fetch(`/api/logs/${name}`)
+      .then(r => r.json())
+      .then(d => {
+        (d.lines || []).forEach(l => appendLogLine(l));
+        logEventSource = new EventSource(`/api/logs/${name}/stream`);
+        logEventSource.onmessage = e => {
+          const data = JSON.parse(e.data);
+          if (data.line != null) appendLogLine(data.line);
+        };
+        logEventSource.onerror = () => appendLogLine('[stream error / reconnecting…]');
+      });
+  } else if (type === 'journal') {
+    logEventSource = new EventSource(`/api/journal/${name}/stream`);
+    logEventSource.onmessage = e => {
+      const data = JSON.parse(e.data);
+      if (data.line != null) appendLogLine(data.line);
+    };
+    logEventSource.onerror = () => appendLogLine('[journal stream error]');
+  }
+}
+
+function clearLogView() {
+  logViewer.innerHTML = '';
+}
+
+function downloadLog() {
+  const lines = Array.from(logViewer.querySelectorAll('.log-line')).map(e => e.textContent);
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'piaware-log-' + Date.now() + '.txt';
+  a.click();
+}
+
+// Auto-start first log source when logs tab is first opened
+document.querySelector('[data-bs-target="#tab-logs"]').addEventListener('shown.bs.tab', () => {
+  if (!logEventSource) switchLogSource();
+}, { once: true });
+
+// ═══════════════════════════════════════════════════════════════
+// xterm.js Terminal
+// ═══════════════════════════════════════════════════════════════
+
+let term = null;
+let fitAddon = null;
+let termSocket = null;
+let termConnected = false;
+
+function initTerminal() {
+  if (term) return;
+
+  term = new Terminal({
+    theme: {
+      background: '#0d1117',
+      foreground: '#00ff88',
+      cursor: '#00ff88',
+      cursorAccent: '#0d1117',
+      selectionBackground: '#264f78',
+      black: '#1e1e1e',
+      brightBlack: '#555',
+      white: '#d4d4d4',
+      brightWhite: '#ffffff',
+      green: '#00ff88',
+      brightGreen: '#69ff47',
+      yellow: '#ffd700',
+      brightYellow: '#ffe066',
+      blue: '#4fc3f7',
+      red: '#ff5555',
+    },
+    fontFamily: '"Fira Code", "Cascadia Code", "Consolas", monospace',
+    fontSize: 14,
+    lineHeight: 1.2,
+    cursorBlink: true,
+    cursorStyle: 'block',
+    scrollback: 5000,
+    allowProposedApi: true,
+  });
+
+  fitAddon = new FitAddon.FitAddon();
+  term.loadAddon(fitAddon);
+  term.open(document.getElementById('terminal-container'));
+  fitAddon.fit();
+
+  // Resize observer
+  new ResizeObserver(() => {
+    try { fitAddon.fit(); } catch(e) {}
+  }).observe(document.getElementById('terminal-container'));
+
+  // Connect Socket.IO
+  termSocket = io('/terminal', {
+    transports: ['websocket'],
+    reconnection: true,
+    reconnectionDelay: 1000,
+    reconnectionAttempts: 10,
+  });
+
+  termSocket.on('connect', () => {
+    termConnected = true;
+    setBadge('term-status-badge', 'CONNECTED', 'success');
+  });
+
+  termSocket.on('disconnect', () => {
+    termConnected = false;
+    setBadge('term-status-badge', 'DISCONNECTED', 'danger');
+  });
+
+  termSocket.on('connected', () => {
+    // Send initial resize
+    sendResize();
+  });
+
+  termSocket.on('output', data => {
+    term.write(data.data);
+  });
+
+  termSocket.on('pty_closed', () => {
+    term.write('\r\n\x1b[31m[PTY session ended — refresh to reconnect]\x1b[0m\r\n');
+    setBadge('term-status-badge', 'PTY CLOSED', 'secondary');
+  });
+
+  term.onData(data => {
+    if (termSocket && termConnected) {
+      termSocket.emit('input', { data });
+    }
+  });
+
+  term.onResize(({ cols, rows }) => {
+    if (termSocket && termConnected) {
+      termSocket.emit('resize', { cols, rows });
+    }
+  });
+}
+
+function sendResize() {
+  if (fitAddon) {
+    fitAddon.fit();
+    if (term && termSocket) {
+      termSocket.emit('resize', { cols: term.cols, rows: term.rows });
+    }
+  }
+}
+
+function clearTerminal() {
+  if (term) term.clear();
+}
+
+function copyTermOutput() {
+  if (term) {
+    term.selectAll();
+    document.execCommand('copy');
+    showToast('Terminal content copied', 'success');
+  }
+}
+
+function sendQuickCmd() {
+  const input = document.getElementById('quick-cmd-input');
+  const cmd = input.value.trim();
+  if (!cmd) return;
+  if (termSocket && termConnected) {
+    termSocket.emit('run_toolkit_cmd', { cmd });
+    input.value = '';
+  } else {
+    showToast('Terminal not connected', 'warning');
+  }
+}
+
+// Initialize terminal when tab first shown
+document.querySelector('[data-bs-target="#tab-console"]').addEventListener('shown.bs.tab', () => {
+  initTerminal();
+  setTimeout(sendResize, 100);
+}, { once: true });
+
+// Also re-fit on subsequent tab shows
+document.querySelector('[data-bs-target="#tab-console"]').addEventListener('shown.bs.tab', sendResize);
+
+// ═══════════════════════════════════════════════════════════════
+// Toolkit
+// ═══════════════════════════════════════════════════════════════
+
+const toolkitOutput = document.getElementById('toolkit-output');
+
+async function runToolkit(action) {
+  document.getElementById('toolkit-cmd-label').textContent = `Running: ${action}…`;
+  toolkitOutput.innerHTML = '<span class="text-warning">Running…</span>';
+  try {
+    const r = await fetch(`/api/toolkit/${action}`, { method: 'POST' });
+    const d = await r.json();
+    if (d.error) {
+      toolkitOutput.innerHTML = `<span class="text-danger">ERROR: ${escHtml(d.error)}</span>`;
+    } else {
+      const lines = (d.output || '').split('\n').map(l =>
+        l.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+         .replace(/(ERROR|FAIL|CRIT)/gi, '<span class="text-danger">$1</span>')
+         .replace(/(WARN|WARNING)/gi, '<span class="text-warning">$1</span>')
+         .replace(/(OK|PASS|good)/gi, '<span class="text-success">$1</span>')
+      ).join('\n');
+      toolkitOutput.innerHTML = lines || '<span class="text-muted">(no output)</span>';
+      document.getElementById('toolkit-cmd-label').textContent = `Output (${action}, rc=${d.rc}):`;
+    }
+  } catch (e) {
+    toolkitOutput.innerHTML = `<span class="text-danger">Request failed: ${escHtml(e.message)}</span>`;
+  }
+  toolkitOutput.scrollTop = 0;
+}
+
+function runToolkitTerm(cmd) {
+  // Switch to console tab and run command there
+  const tab = document.querySelector('[data-bs-target="#tab-console"]');
+  bootstrap.Tab.getOrCreateInstance(tab).show();
+  setTimeout(() => {
+    if (!term) initTerminal();
+    setTimeout(() => {
+      if (termSocket && termConnected) {
+        termSocket.emit('run_toolkit_cmd', { cmd });
+      } else {
+        showToast('Terminal not ready — open Console tab first', 'warning');
+      }
+    }, 500);
+  }, 200);
+}
+
+function clearToolkitOutput() {
+  toolkitOutput.innerHTML = '<span class="text-muted">Cleared.</span>';
+  document.getElementById('toolkit-cmd-label').textContent = 'Output:';
+}
+
+function copyToolkitOutput() {
+  navigator.clipboard.writeText(toolkitOutput.innerText)
+    .then(() => showToast('Copied to clipboard', 'success'))
+    .catch(() => showToast('Copy failed', 'danger'));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Config editor
+// ═══════════════════════════════════════════════════════════════
+
+async function loadConfig() {
+  const name = document.getElementById('cfg-select').value;
+  hideConfigAlerts();
+  document.getElementById('cfg-editor').value = 'Loading…';
+  try {
+    const r = await fetch(`/api/config/${name}`);
+    const d = await r.json();
+    if (d.error && !d.content) {
+      showConfigError(d.error);
+      document.getElementById('cfg-editor').value = '';
+    } else {
+      document.getElementById('cfg-editor').value = d.content || '';
+      document.getElementById('cfg-path').textContent = d.path || '';
+    }
+  } catch (e) {
+    showConfigError('Fetch error: ' + e.message);
+  }
+}
+
+async function saveConfig() {
+  const name = document.getElementById('cfg-select').value;
+  const content = document.getElementById('cfg-editor').value;
+  hideConfigAlerts();
+  try {
+    const r = await fetch(`/api/config/${name}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    });
+    const d = await r.json();
+    if (d.ok) {
+      document.getElementById('cfg-success').textContent = `Saved to ${d.path}. Restart service to apply.`;
+      document.getElementById('cfg-success').classList.remove('d-none');
+    } else {
+      showConfigError(d.error || 'Save failed');
+    }
+  } catch (e) {
+    showConfigError('Save error: ' + e.message);
+  }
+}
+
+function showConfigError(msg) {
+  const el = document.getElementById('cfg-error');
+  el.textContent = msg;
+  el.classList.remove('d-none');
+}
+
+function hideConfigAlerts() {
+  document.getElementById('cfg-error').classList.add('d-none');
+  document.getElementById('cfg-success').classList.add('d-none');
+}
+
+document.querySelector('[data-bs-target="#tab-config"]').addEventListener('shown.bs.tab', loadConfig, { once: true });
+
+// ═══════════════════════════════════════════════════════════════
+// Utilities
+// ═══════════════════════════════════════════════════════════════
+
+function setBadge(id, text, cls) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = text;
+  el.className = `badge bg-${cls} font-mono`;
+}
+
+function escHtml(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function showToast(msg, type = 'info') {
+  const toastEl = document.createElement('div');
+  toastEl.className = `toast align-items-center text-bg-${type} border-0`;
+  toastEl.setAttribute('role', 'alert');
+  toastEl.innerHTML = `
+    <div class="d-flex">
+      <div class="toast-body font-mono">${escHtml(msg)}</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>`;
+  document.getElementById('toast-container').appendChild(toastEl);
+  const t = new bootstrap.Toast(toastEl, { delay: 4000 });
+  t.show();
+  toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+}
+</script>
+</body>
+</html>

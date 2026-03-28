@@ -1,0 +1,58 @@
+# /etc/sudoers.d/piaware-troubleshooter
+# Passwordless sudo for PiAware RTL-SDR Troubleshooter (user: pi)
+# Install: sudo cp piaware-troubleshooter /etc/sudoers.d/ && sudo chmod 440 /etc/sudoers.d/piaware-troubleshooter
+# Verify:  sudo visudo -c -f /etc/sudoers.d/piaware-troubleshooter
+
+Defaults:pi !requiretty
+
+# Service control
+pi ALL=(ALL) NOPASSWD: /bin/systemctl restart piaware
+pi ALL=(ALL) NOPASSWD: /bin/systemctl stop piaware
+pi ALL=(ALL) NOPASSWD: /bin/systemctl start piaware
+pi ALL=(ALL) NOPASSWD: /bin/systemctl restart dump1090-fa
+pi ALL=(ALL) NOPASSWD: /bin/systemctl stop dump1090-fa
+pi ALL=(ALL) NOPASSWD: /bin/systemctl start dump1090-fa
+pi ALL=(ALL) NOPASSWD: /bin/systemctl restart dump978-fa
+pi ALL=(ALL) NOPASSWD: /bin/systemctl stop dump978-fa
+pi ALL=(ALL) NOPASSWD: /bin/systemctl start dump978-fa
+pi ALL=(ALL) NOPASSWD: /bin/systemctl restart readsb
+pi ALL=(ALL) NOPASSWD: /bin/systemctl stop readsb
+pi ALL=(ALL) NOPASSWD: /bin/systemctl start readsb
+
+# Config file writes
+pi ALL=(ALL) NOPASSWD: /usr/bin/tee /etc/piaware.conf
+pi ALL=(ALL) NOPASSWD: /usr/bin/tee /etc/default/dump1090-fa
+pi ALL=(ALL) NOPASSWD: /usr/bin/tee /boot/piaware-config.txt
+pi ALL=(ALL) NOPASSWD: /usr/bin/tee /boot/firmware/piaware-config.txt
+
+# RTL-SDR tools
+pi ALL=(ALL) NOPASSWD: /usr/bin/rtl_test
+pi ALL=(ALL) NOPASSWD: /usr/local/bin/rtl_test
+pi ALL=(ALL) NOPASSWD: /usr/bin/rtl_eeprom
+pi ALL=(ALL) NOPASSWD: /usr/local/bin/rtl_eeprom
+
+# USB diagnostics
+pi ALL=(ALL) NOPASSWD: /usr/bin/lsusb
+pi ALL=(ALL) NOPASSWD: /usr/sbin/usb-devices
+pi ALL=(ALL) NOPASSWD: /usr/sbin/usb_modeswitch
+pi ALL=(ALL) NOPASSWD: /usr/bin/usb_reset
+pi ALL=(ALL) NOPASSWD: /usr/sbin/usb_reset
+
+# Kernel diagnostics (read-only)
+pi ALL=(ALL) NOPASSWD: /bin/dmesg
+pi ALL=(ALL) NOPASSWD: /usr/bin/dmesg
+
+# Module management (for blacklist/load fixes)
+pi ALL=(ALL) NOPASSWD: /sbin/modprobe dvb_usb_rtl28xxu
+pi ALL=(ALL) NOPASSWD: /sbin/modprobe -r dvb_usb_rtl28xxu
+pi ALL=(ALL) NOPASSWD: /sbin/modprobe rtl2832
+pi ALL=(ALL) NOPASSWD: /sbin/modprobe -r rtl2832
+pi ALL=(ALL) NOPASSWD: /sbin/modprobe rtl2830
+pi ALL=(ALL) NOPASSWD: /sbin/modprobe -r rtl2830
+pi ALL=(ALL) NOPASSWD: /sbin/rmmod dvb_usb_rtl28xxu
+pi ALL=(ALL) NOPASSWD: /sbin/rmmod rtl2832
+pi ALL=(ALL) NOPASSWD: /sbin/rmmod rtl2830
+
+# Network capture (for SBS/Beast port checks)
+pi ALL=(ALL) NOPASSWD: /usr/bin/tcpdump -i * port * -c *
+pi ALL=(ALL) NOPASSWD: /usr/sbin/tcpdump -i * port * -c *

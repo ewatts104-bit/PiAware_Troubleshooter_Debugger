@@ -1,0 +1,30 @@
+[Unit]
+Description=PiAware RTL-SDR Troubleshooter
+Documentation=https://github.com/
+After=network.target piaware.service
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/opt/piaware-troubleshooter
+ExecStart=/opt/piaware-troubleshooter/venv/bin/python app.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=piaware-troubleshooter
+
+# Hardening — still needs to fork PTY children
+NoNewPrivileges=no
+PrivateTmp=yes
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/opt/piaware-troubleshooter
+
+# Environment
+Environment=PYTHONUNBUFFERED=1
+Environment=PORT=8081
+
+[Install]
+WantedBy=multi-user.target
