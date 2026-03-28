@@ -112,4 +112,4 @@ The WebSocket upgrade headers are required for the xterm.js console.
 
 ## License
 
-MIT — see [LICENSE](LICENSE)
+MIT — free to use, no copyright. See [LICENSE](LICENSE)
