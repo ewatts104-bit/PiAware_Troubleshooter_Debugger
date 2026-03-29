@@ -40,8 +40,10 @@ pi ALL=(ALL) NOPASSWD: /usr/local/bin/rtl_eeprom
 pi ALL=(ALL) NOPASSWD: /usr/bin/lsusb
 pi ALL=(ALL) NOPASSWD: /usr/sbin/usb-devices
 pi ALL=(ALL) NOPASSWD: /usr/sbin/usb_modeswitch
-pi ALL=(ALL) NOPASSWD: /usr/bin/usb_reset
-pi ALL=(ALL) NOPASSWD: /usr/sbin/usb_reset
+
+# USB reset via sysfs authorized toggle (wrapper script)
+pi ALL=(ALL) NOPASSWD: /usr/local/bin/usb-authorize
+pi ALL=(ALL) NOPASSWD: /usr/local/bin/usb-deauthorize
 
 # Kernel diagnostics (read-only)
 pi ALL=(ALL) NOPASSWD: /bin/dmesg

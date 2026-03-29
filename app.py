@@ -762,27 +762,80 @@ def _toolkit_gain_sweep():
     return 0, "\n".join(lines)
 
 
+def _find_rtlsdr_syspaths() -> list:
+    """Return list of /sys/bus/usb/devices/<port> paths for RTL-SDR dongles."""
+    rtl_vids = {"0bda"}
+    rtl_pids = {"2838", "2832", "2837", "2830"}
+    found = []
+    base = "/sys/bus/usb/devices"
+    try:
+        for entry in sorted(os.listdir(base)):
+            # Skip interface entries (contain colon)
+            if ":" in entry:
+                continue
+            dev_path = os.path.join(base, entry)
+            try:
+                vid = open(os.path.join(dev_path, "idVendor")).read().strip()
+                pid = open(os.path.join(dev_path, "idProduct")).read().strip()
+                if vid in rtl_vids and pid in rtl_pids:
+                    found.append((entry, dev_path))
+            except Exception:
+                continue
+    except Exception:
+        pass
+    return found
+
+
 def _toolkit_usb_reset():
-    rc, out = run_cmd(["lsusb"])
-    rtl_line = next(
-        (l for l in out.splitlines() if any(p in l.lower() for p in ["0bda:2838", "0bda:2832", "rtl"])),
-        None,
-    )
-    if not rtl_line:
-        return 1, "[RTL-SDR not found in lsusb — cannot reset]"
-    m = re.search(r"Bus (\d+) Device (\d+)", rtl_line)
-    if not m:
-        return 1, f"[Could not parse bus/device from: {rtl_line}]"
-    bus, dev = m.group(1), m.group(2)
-    dev_path = f"/dev/bus/usb/{bus.zfill(3)}/{dev.zfill(3)}"
-    rc2, out2 = run_cmd(["sudo", "usb_reset", dev_path], 10)
-    if rc2 != 0:
-        # Try usbutils reset via echo
-        rc2, out2 = run_cmd(
-            ["sudo", "sh", "-c", f"echo 0 > /sys/bus/usb/devices/{bus}-{dev}/authorized && sleep 1 && echo 1 > /sys/bus/usb/devices/{bus}-{dev}/authorized"],
-            15,
+    devices = _find_rtlsdr_syspaths()
+    if not devices:
+        return 1, "[No RTL-SDR dongles found in /sys/bus/usb/devices]"
+
+    lines = [f"Found {len(devices)} RTL-SDR dongle(s) — resetting via sysfs authorized toggle\n"]
+
+    # Stop services first so they release the device cleanly
+    for svc in ("dump1090-fa", "dump978-fa"):
+        rc, _ = run_cmd(["sudo", "systemctl", "stop", svc], 10)
+        lines.append(f"stop {svc}: {'ok' if rc == 0 else 'failed (may not be running)'}")
+
+    time.sleep(1)
+
+    for port, syspath in devices:
+        auth_path = os.path.join(syspath, "authorized")
+        try:
+            mfg  = open(os.path.join(syspath, "manufacturer")).read().strip()
+        except Exception:
+            mfg = "?"
+        try:
+            prod = open(os.path.join(syspath, "product")).read().strip()
+        except Exception:
+            prod = "RTL2838"
+        lines.append(f"\nDevice: {port} — {mfg} {prod}")
+        lines.append(f"  sysfs: {syspath}")
+
+        # Deauthorize then reauthorize via wrapper scripts
+        r1 = subprocess.run(
+            ["sudo", "/usr/local/bin/usb-deauthorize", auth_path],
+            capture_output=True, text=True, timeout=5
         )
-    return rc2, f"Device: {rtl_line}\nPath: {dev_path}\n{out2}"
+        lines.append(f"  deauthorize: {'ok' if r1.returncode == 0 else r1.stderr.strip()}")
+        time.sleep(1)
+
+        r2 = subprocess.run(
+            ["sudo", "/usr/local/bin/usb-authorize", auth_path],
+            capture_output=True, text=True, timeout=5
+        )
+        lines.append(f"  reauthorize:  {'ok' if r2.returncode == 0 else r2.stderr.strip()}")
+
+    time.sleep(2)
+
+    # Restart services
+    for svc in ("dump1090-fa", "dump978-fa"):
+        rc, _ = run_cmd(["sudo", "systemctl", "start", svc], 15)
+        lines.append(f"\nstart {svc}: {'ok' if rc == 0 else 'failed'}")
+
+    lines.append("\nDone. Check dashboard — services should be active within ~10s.")
+    return 0, "\n".join(lines)
 
 
 def _toolkit_adsb_quality():
