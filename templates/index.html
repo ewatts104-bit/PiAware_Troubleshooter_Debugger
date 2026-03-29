@@ -64,6 +64,45 @@
     <div class="tab-pane fade show active" id="tab-dashboard">
       <div class="row g-3" id="status-cards">
 
+        <!-- Aircraft Total -->
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="card status-card h-100">
+            <div class="card-body text-center">
+              <h6 class="card-subtitle text-muted font-mono mb-2">Aircraft Tracked</h6>
+              <div class="font-mono" style="font-size:3.5rem;font-weight:700;color:var(--term-green);line-height:1" id="aircraft-total">--</div>
+              <small class="text-muted font-mono">last 1 min</small>
+              <div class="mt-2 font-mono small" id="aircraft-msgs">-- msg/min</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ADS-B Stats -->
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="card status-card h-100" id="card-adsb">
+            <div class="card-body">
+              <h6 class="card-subtitle text-muted font-mono mb-2">ADS-B Stats (1min)</h6>
+              <div class="row g-2 text-center">
+                <div class="col-6">
+                  <div class="stat-num font-mono" id="adsb-messages">--</div>
+                  <small class="text-muted font-mono">messages</small>
+                </div>
+                <div class="col-6">
+                  <div class="stat-num font-mono" id="adsb-aircraft">--</div>
+                  <small class="text-muted font-mono">aircraft</small>
+                </div>
+                <div class="col-6">
+                  <div class="stat-num font-mono text-warning" id="adsb-signal">--</div>
+                  <small class="text-muted font-mono">sig dBFS</small>
+                </div>
+                <div class="col-6">
+                  <div class="stat-num font-mono text-secondary" id="adsb-strong">--</div>
+                  <small class="text-muted font-mono">strong%</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- RTL-SDR -->
         <div class="col-12 col-sm-6 col-xl-4">
           <div class="card status-card h-100" id="card-rtlsdr">
@@ -137,45 +176,6 @@
               <div class="mt-1">
                 <small class="font-mono text-muted" id="throttle-flags"></small>
               </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ADS-B Stats -->
-        <div class="col-12 col-sm-6 col-xl-3">
-          <div class="card status-card h-100" id="card-adsb">
-            <div class="card-body">
-              <h6 class="card-subtitle text-muted font-mono mb-2">ADS-B Stats (1min)</h6>
-              <div class="row g-2 text-center">
-                <div class="col-6">
-                  <div class="stat-num font-mono" id="adsb-messages">--</div>
-                  <small class="text-muted font-mono">messages</small>
-                </div>
-                <div class="col-6">
-                  <div class="stat-num font-mono" id="adsb-aircraft">--</div>
-                  <small class="text-muted font-mono">aircraft</small>
-                </div>
-                <div class="col-6">
-                  <div class="stat-num font-mono text-warning" id="adsb-signal">--</div>
-                  <small class="text-muted font-mono">sig dBFS</small>
-                </div>
-                <div class="col-6">
-                  <div class="stat-num font-mono text-secondary" id="adsb-strong">--</div>
-                  <small class="text-muted font-mono">strong%</small>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Aircraft Total -->
-        <div class="col-12 col-sm-6 col-xl-3">
-          <div class="card status-card h-100">
-            <div class="card-body text-center">
-              <h6 class="card-subtitle text-muted font-mono mb-2">Aircraft Tracked</h6>
-              <div class="font-mono" style="font-size:3.5rem;font-weight:700;color:var(--term-green);line-height:1" id="aircraft-total">--</div>
-              <small class="text-muted font-mono">last 1 min</small>
-              <div class="mt-2 font-mono small" id="aircraft-msgs">-- msg/min</div>
             </div>
           </div>
         </div>
@@ -603,7 +603,13 @@ async function fetchStatus() {
     document.getElementById('adsb-messages').textContent = s.messages ?? '--';
     document.getElementById('adsb-aircraft').textContent = s.aircraft ?? '--';
     document.getElementById('adsb-signal').textContent = s.signal_dbfs != null ? s.signal_dbfs.toFixed(1) : '--';
-    document.getElementById('adsb-strong').textContent = s.strong_signals ?? '--';
+    // strong% = strong_signals / messages * 100
+    if (s.messages > 0 && s.strong_signals != null) {
+      const pct = (s.strong_signals / s.messages * 100).toFixed(1);
+      document.getElementById('adsb-strong').textContent = pct + '%';
+    } else {
+      document.getElementById('adsb-strong').textContent = s.strong_signals != null ? s.strong_signals : '--';
+    }
 
     // Resources
     const res = d.resources;
