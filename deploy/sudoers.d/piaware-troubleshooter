@@ -25,6 +25,10 @@ pi ALL=(ALL) NOPASSWD: /usr/bin/tee /etc/default/dump1090-fa
 pi ALL=(ALL) NOPASSWD: /usr/bin/tee /boot/piaware-config.txt
 pi ALL=(ALL) NOPASSWD: /usr/bin/tee /boot/firmware/piaware-config.txt
 
+# System control
+pi ALL=(ALL) NOPASSWD: /sbin/reboot
+pi ALL=(ALL) NOPASSWD: /usr/sbin/reboot
+
 # Boot partition remount (needed to write piaware-config.txt)
 # Uses wrapper scripts — sudo doesn't allow inline flags like -o in command spec
 pi ALL=(ALL) NOPASSWD: /usr/local/bin/boot-rw

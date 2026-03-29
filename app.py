@@ -607,6 +607,18 @@ def api_config_write(cfgname):
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/reboot", methods=["POST"])
+@limiter.limit("2 per minute")
+def api_reboot():
+    log.info({"action": "reboot", "ip": request.remote_addr})
+    # Schedule reboot 2s after response so the HTTP reply makes it back
+    def _do_reboot():
+        time.sleep(2)
+        subprocess.run(["sudo", "reboot"], capture_output=True)
+    threading.Thread(target=_do_reboot, daemon=True).start()
+    return jsonify({"ok": True, "msg": "Rebooting in 2s…"})
+
+
 @app.route("/api/service/<service>/<action>", methods=["POST"])
 @limiter.limit("10 per minute")
 def api_service_action(service, action):
@@ -827,12 +839,23 @@ def _toolkit_usb_reset():
         )
         lines.append(f"  reauthorize:  {'ok' if r2.returncode == 0 else r2.stderr.strip()}")
 
-    time.sleep(2)
+    # Wait for USB re-enumeration — devices need time to register serials
+    lines.append("\nWaiting for USB re-enumeration (8s)…")
+    time.sleep(8)
+
+    # Confirm dongles are back with correct serials before starting services
+    devices_back = _find_rtlsdr_syspaths()
+    for port, syspath in devices_back:
+        try:
+            serial = open(os.path.join(syspath, "serial")).read().strip()
+        except Exception:
+            serial = "?"
+        lines.append(f"  re-enumerated: {port} serial={serial}")
 
     # Restart services
     for svc in ("dump1090-fa", "dump978-fa"):
-        rc, _ = run_cmd(["sudo", "systemctl", "start", svc], 15)
-        lines.append(f"\nstart {svc}: {'ok' if rc == 0 else 'failed'}")
+        rc, out = run_cmd(["sudo", "systemctl", "start", svc], 20)
+        lines.append(f"\nstart {svc}: {'ok' if rc == 0 else f'FAILED — {out.strip()}'}")
 
     lines.append("\nDone. Check dashboard — services should be active within ~10s.")
     return 0, "\n".join(lines)

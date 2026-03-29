@@ -21,6 +21,9 @@
     <div class="d-flex align-items-center gap-3 ms-auto">
       <span class="badge bg-secondary font-mono" id="last-update">--</span>
       <span class="badge" id="overall-badge">Loading…</span>
+      <button class="btn btn-sm btn-outline-danger font-mono" onclick="rebootPi()">
+        <i class="bi bi-power"></i> Reboot Pi
+      </button>
     </div>
   </div>
 </nav>
@@ -660,6 +663,34 @@ async function serviceAction(service, action) {
 // Start polling
 fetchStatus();
 statusTimer = setInterval(fetchStatus, REFRESH_MS);
+
+// ═══════════════════════════════════════════════════════════════
+// Reboot
+// ═══════════════════════════════════════════════════════════════
+
+async function rebootPi() {
+  if (!confirm('Reboot the Pi now?\n\nAll services will stop. Dashboard will reconnect automatically when it comes back up.')) return;
+  try {
+    const r = await fetch('/api/reboot', { method: 'POST' });
+    const d = await r.json();
+    showToast('Rebooting… dashboard will reconnect in ~60s', 'warning');
+    // Poll until the server comes back
+    const start = Date.now();
+    const poll = setInterval(async () => {
+      if (Date.now() - start > 180000) { clearInterval(poll); return; }
+      try {
+        const p = await fetch('/api/status');
+        if (p.ok) {
+          clearInterval(poll);
+          showToast('Pi is back online', 'success');
+          fetchStatus();
+        }
+      } catch(e) { /* still rebooting */ }
+    }, 5000);
+  } catch(e) {
+    showToast('Reboot request failed: ' + e.message, 'danger');
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════
 // Gain sliders
